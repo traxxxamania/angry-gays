@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Angry Swine — запусти своим лицом</title>
+<title>Angry Swine — друзья летают в копов</title>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -12,13 +12,12 @@
   <!-- ГЛАВНОЕ МЕНЮ -->
   <section id="screen-menu" class="screen active">
     <h1 class="title">ANGRY <span class="accent">SWINE</span></h1>
-    <p class="subtitle">Запусти своё лицо в копов из агентства СВИНЬ</p>
+    <p class="subtitle">Друзья летают в копов агентства СВИНЬ</p>
+    <div class="roster" id="roster"></div>
     <div class="menu-buttons">
       <button class="btn big" id="btn-play">▶ Играть</button>
-      <button class="btn" id="btn-face-menu">📸 Моё лицо в игре</button>
       <button class="btn ghost" id="btn-reset-progress">🗑 Сбросить прогресс</button>
     </div>
-    <div class="face-status" id="face-status"></div>
   </section>
 
   <!-- ВЫБОР УРОВНЯ -->
@@ -31,15 +30,23 @@
   <!-- ИГРА -->
   <section id="screen-game" class="screen">
     <div id="hud">
-      <button class="hud-btn" id="btn-hud-menu" title="В меню">☰</button>
-      <div class="hud-info">
-        <span id="hud-level-name"></span>
-        <span id="hud-score">0</span>
+      <button class="hud-btn" id="btn-pause" title="Пауза">❚❚</button>
+      <div class="hud-score-box">
+        <div class="hud-high" id="hud-high">Highscore: 0</div>
+        <div class="hud-score" id="hud-score">Score: 0</div>
       </div>
-      <button class="hud-btn" id="btn-restart" title="Заново">↻</button>
     </div>
     <div id="canvas-wrap">
       <canvas id="game-canvas" width="1600" height="900"></canvas>
+    </div>
+
+    <div class="overlay hidden" id="overlay-pause">
+      <h2 class="ov-title">Пауза</h2>
+      <div class="ov-buttons col">
+        <button class="btn big" id="btn-resume">▶ Продолжить</button>
+        <button class="btn" id="btn-restart-p">↻ Заново</button>
+        <button class="btn ghost" id="btn-menu-p">☰ Меню</button>
+      </div>
     </div>
 
     <div class="overlay hidden" id="overlay-win">
@@ -53,58 +60,17 @@
     </div>
 
     <div class="overlay hidden" id="overlay-fail">
-      <h2 class="ov-title fail">Лицо не долетело…</h2>
+      <h2 class="ov-title fail">Друзья кончились…</h2>
       <div class="ov-buttons">
-        <button class="btn" id="btn-hud-menu2">☰ Меню</button>
+        <button class="btn ghost" id="btn-menu-f">☰ Меню</button>
         <button class="btn big" id="btn-retry2">↻ Ещё раз</button>
       </div>
     </div>
   </section>
 
-  <!-- МОДАЛКА ЛИЦА -->
-  <div id="face-modal" class="modal hidden">
-    <div class="modal-box">
-      <h3>Твоё лицо как птичка</h3>
-      <div class="tabs">
-        <button class="tab active" data-tab="camera">🎥 Камера</button>
-        <button class="tab" data-tab="photo">🖼 Фото</button>
-      </div>
-
-      <div class="tab-body" id="tab-camera">
-        <video id="cam-video" autoplay playsinline muted></video>
-        <button class="btn" id="btn-cam-on">Включить камеру</button>
-        <button class="btn hidden" id="btn-cam-shot">📷 Снять</button>
-      </div>
-
-      <div class="tab-body hidden" id="tab-photo">
-        <input type="file" id="photo-input" accept="image/*">
-      </div>
-
-      <div class="adjust" id="adjust-area">
-        <canvas id="adjust-canvas" width="360" height="360"></canvas>
-        <div class="zoom-row">
-          <span>Зум</span>
-          <input type="range" id="zoom-slider" min="50" max="250" value="100">
-        </div>
-        <p class="hint">Перетащи фото так, чтобы лицо было внутри круга</p>
-      </div>
-
-      <div class="preview-row hidden" id="preview-row">
-        <img id="preview-img" alt="птичка">
-        <span>= твоя птичка в игре</span>
-      </div>
-
-      <div class="modal-buttons">
-        <button class="btn big" id="btn-save-face" disabled>💾 Сохранить</button>
-        <button class="btn ghost" id="btn-remove-face">Удалить моё лицо</button>
-        <button class="btn ghost" id="btn-close-face">Закрыть</button>
-      </div>
-    </div>
-  </div>
-
 </div>
 <script src="vendor/matter.min.js"></script>
-<script src="js/face.js"></script>
+<script src="js/birds.js"></script>
 <script src="js/levels.js"></script>
 <script src="js/game.js"></script>
 <script src="js/main.js"></script>
