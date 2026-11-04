@@ -4,75 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Angry Swine — друзья летают в копов</title>
-<link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<div id="app">
-
-  <!-- ГЛАВНОЕ МЕНЮ -->
-  <section id="screen-menu" class="screen active">
-    <h1 class="title">ANGRY <span class="accent">SWINE</span></h1>
-    <p class="subtitle">Друзья летают в копов агентства СВИНЬ</p>
-    <div class="roster" id="roster"></div>
-    <div class="menu-buttons">
-      <button class="btn big" id="btn-play">▶ Играть</button>
-      <button class="btn ghost" id="btn-reset-progress">🗑 Сбросить прогресс</button>
-    </div>
-  </section>
-
-  <!-- ВЫБОР УРОВНЯ -->
-  <section id="screen-levels" class="screen">
-    <h2 class="screen-h">Выбери операцию</h2>
-    <div class="level-grid" id="level-grid"></div>
-    <button class="btn ghost back" id="btn-menu">← Меню</button>
-  </section>
-
-  <!-- ИГРА -->
-  <section id="screen-game" class="screen">
-    <div id="hud">
-      <button class="hud-btn" id="btn-pause" title="Пауза">❚❚</button>
-      <div class="hud-score-box">
-        <div class="hud-high" id="hud-high">Highscore: 0</div>
-        <div class="hud-score" id="hud-score">Score: 0</div>
-      </div>
-    </div>
-    <div id="canvas-wrap">
-      <canvas id="game-canvas" width="1600" height="900"></canvas>
-    </div>
-
-    <div class="overlay hidden" id="overlay-pause">
-      <h2 class="ov-title">Пауза</h2>
-      <div class="ov-buttons col">
-        <button class="btn big" id="btn-resume">▶ Продолжить</button>
-        <button class="btn" id="btn-restart-p">↻ Заново</button>
-        <button class="btn ghost" id="btn-menu-p">☰ Меню</button>
-      </div>
-    </div>
-
-    <div class="overlay hidden" id="overlay-win">
-      <h2 class="ov-title win">Уровень пройден!</h2>
-      <div class="stars" id="win-stars"></div>
-      <div class="ov-score" id="win-score"></div>
-      <div class="ov-buttons">
-        <button class="btn" id="btn-retry">↻ Повтор</button>
-        <button class="btn big" id="btn-next">Дальше →</button>
-      </div>
-    </div>
-
-    <div class="overlay hidden" id="overlay-fail">
-      <h2 class="ov-title fail">Друзья кончились…</h2>
-      <div class="ov-buttons">
-        <button class="btn ghost" id="btn-menu-f">☰ Меню</button>
-        <button class="btn big" id="btn-retry2">↻ Ещё раз</button>
-      </div>
-    </div>
-  </section>
-
-</div>
-<script src="vendor/matter.min.js"></script>
-<script src="js/birds.js"></script>
-<script src="js/levels.js"></script>
-<script src="js/game.js"></script>
-<script src="js/main.js"></script>
+<div id="root"></div>
+<script type="module" src="/src/main.jsx"></script>
 </body>
 </html>

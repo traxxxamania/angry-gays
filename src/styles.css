@@ -1,6 +1,6 @@
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
-html, body { height: 100%; overflow: hidden; }
+html, body, #root { height: 100%; overflow: hidden; }
 
 body {
   font-family: 'Segoe UI', system-ui, sans-serif;
@@ -9,11 +9,9 @@ body {
   user-select: none;
 }
 
-#app { height: 100%; }
-
 .screen {
   position: absolute; inset: 0;
-  display: none;
+  display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
@@ -21,7 +19,7 @@ body {
   padding: 24px;
   text-align: center;
 }
-.screen.active { display: flex; }
+.screen.game { justify-content: flex-start; padding: 0; }
 
 .title {
   font-family: 'Comic Sans MS', 'Chalkboard SE', cursive;
@@ -34,6 +32,7 @@ body {
   text-shadow: 0 6px 0 rgba(0,0,0,.35);
 }
 .subtitle { font-size: clamp(14px, 3vw, 22px); opacity: .9; max-width: 560px; }
+.accent { color: #ffe14d; }
 
 .roster { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; margin: 6px 0 4px; min-height: 74px; }
 .roster-item { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 13px; }
@@ -78,7 +77,6 @@ body {
 .back { margin-top: 18px; }
 
 /* --- игра --- */
-#screen-game { padding: 0; justify-content: flex-start; }
 #hud {
   width: 100%; display: flex; align-items: flex-start; justify-content: space-between;
   padding: 8px 14px; gap: 10px; z-index: 5; position: relative;
@@ -102,15 +100,14 @@ body {
 .hud-high { font-size: 24px; }
 .hud-score { font-size: 26px; }
 
-#canvas-wrap { flex: 1; width: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-#game-canvas { display: block; touch-action: none; cursor: crosshair; }
+.canvas-wrap { flex: 1; width: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.canvas-wrap canvas { display: block; touch-action: none; cursor: crosshair; }
 
 .overlay {
   position: absolute; inset: 0; z-index: 10;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
   background: rgba(8, 12, 22, .72); backdrop-filter: blur(3px);
 }
-.hidden { display: none !important; }
 .ov-title { font-family: 'Comic Sans MS', cursive; font-size: 46px; text-shadow: 0 4px 0 rgba(0,0,0,.4); }
 .ov-title.win { color: #ffd54f; }
 .ov-title.fail { color: #ef9a9a; }

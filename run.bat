@@ -1,8 +1,8 @@
 @echo off
-title Angry Swine
+title Angry Swine (Vite)
 cd /d "%~dp0"
 
-rem -- server already running? just open the browser
+rem -- dev server already running? just open the browser
 netstat -ano | findstr ":8123.*LISTENING" >nul 2>nul
 if not errorlevel 1 (
   echo Game is already running - opening browser...
@@ -17,10 +17,20 @@ if errorlevel 1 (
   exit /b 1
 )
 
+if not exist "node_modules\" (
+  echo First run - installing dependencies, please wait...
+  call npm install
+  if errorlevel 1 (
+    echo [ERROR] npm install failed.
+    pause
+    exit /b 1
+  )
+)
+
 echo.
 echo  Angry Swine - starting at http://localhost:8123
 echo  Close this window to stop the game.
 echo.
-start "" "http://localhost:8123"
-node server.js
+rem -- "npm run dev" opens the browser itself (vite --open)
+npm run dev
 pause

@@ -1,12 +1,20 @@
 {
   "name": "angry-swine",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "description": "Физическая игра в духе Angry Birds: твоё лицо летит в копов агентства СВИНЬ",
+  "type": "module",
   "scripts": {
-    "start": "node server.js"
+    "dev": "vite --open",
+    "build": "vite build",
+    "preview": "vite preview --port 8123"
   },
   "dependencies": {
-    "matter-js": "^0.20.0"
+    "matter-js": "^0.20.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.2.1",
+    "vite": "^8.3.5"
   }
 }
