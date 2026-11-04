@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Angry Swine — запусти своим лицом</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ГЛАВНОЕ МЕНЮ -->
+  <section id="screen-menu" class="screen active">
+    <h1 class="title">ANGRY <span class="accent">SWINE</span></h1>
+    <p class="subtitle">Запусти своё лицо в копов из агентства СВИНЬ</p>
+    <div class="menu-buttons">
+      <button class="btn big" id="btn-play">▶ Играть</button>
+      <button class="btn" id="btn-face-menu">📸 Моё лицо в игре</button>
+      <button class="btn ghost" id="btn-reset-progress">🗑 Сбросить прогресс</button>
+    </div>
+    <div class="face-status" id="face-status"></div>
+  </section>
+
+  <!-- ВЫБОР УРОВНЯ -->
+  <section id="screen-levels" class="screen">
+    <h2 class="screen-h">Выбери операцию</h2>
+    <div class="level-grid" id="level-grid"></div>
+    <button class="btn ghost back" id="btn-menu">← Меню</button>
+  </section>
+
+  <!-- ИГРА -->
+  <section id="screen-game" class="screen">
+    <div id="hud">
+      <button class="hud-btn" id="btn-hud-menu" title="В меню">☰</button>
+      <div class="hud-info">
+        <span id="hud-level-name"></span>
+        <span id="hud-score">0</span>
+      </div>
+      <button class="hud-btn" id="btn-restart" title="Заново">↻</button>
+    </div>
+    <div id="canvas-wrap">
+      <canvas id="game-canvas" width="1600" height="900"></canvas>
+    </div>
+
+    <div class="overlay hidden" id="overlay-win">
+      <h2 class="ov-title win">Уровень пройден!</h2>
+      <div class="stars" id="win-stars"></div>
+      <div class="ov-score" id="win-score"></div>
+      <div class="ov-buttons">
+        <button class="btn" id="btn-retry">↻ Повтор</button>
+        <button class="btn big" id="btn-next">Дальше →</button>
+      </div>
+    </div>
+
+    <div class="overlay hidden" id="overlay-fail">
+      <h2 class="ov-title fail">Лицо не долетело…</h2>
+      <div class="ov-buttons">
+        <button class="btn" id="btn-hud-menu2">☰ Меню</button>
+        <button class="btn big" id="btn-retry2">↻ Ещё раз</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- МОДАЛКА ЛИЦА -->
+  <div id="face-modal" class="modal hidden">
+    <div class="modal-box">
+      <h3>Твоё лицо как птичка</h3>
+      <div class="tabs">
+        <button class="tab active" data-tab="camera">🎥 Камера</button>
+        <button class="tab" data-tab="photo">🖼 Фото</button>
+      </div>
+
+      <div class="tab-body" id="tab-camera">
+        <video id="cam-video" autoplay playsinline muted></video>
+        <button class="btn" id="btn-cam-on">Включить камеру</button>
+        <button class="btn hidden" id="btn-cam-shot">📷 Снять</button>
+      </div>
+
+      <div class="tab-body hidden" id="tab-photo">
+        <input type="file" id="photo-input" accept="image/*">
+      </div>
+
+      <div class="adjust" id="adjust-area">
+        <canvas id="adjust-canvas" width="360" height="360"></canvas>
+        <div class="zoom-row">
+          <span>Зум</span>
+          <input type="range" id="zoom-slider" min="50" max="250" value="100">
+        </div>
+        <p class="hint">Перетащи фото так, чтобы лицо было внутри круга</p>
+      </div>
+
+      <div class="preview-row hidden" id="preview-row">
+        <img id="preview-img" alt="птичка">
+        <span>= твоя птичка в игре</span>
+      </div>
+
+      <div class="modal-buttons">
+        <button class="btn big" id="btn-save-face" disabled>💾 Сохранить</button>
+        <button class="btn ghost" id="btn-remove-face">Удалить моё лицо</button>
+        <button class="btn ghost" id="btn-close-face">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script src="vendor/matter.min.js"></script>
+<script src="js/face.js"></script>
+<script src="js/levels.js"></script>
+<script src="js/game.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

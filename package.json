@@ -1,0 +1,12 @@
+{
+  "name": "angry-swine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Физическая игра в духе Angry Birds: твоё лицо летит в копов агентства СВИНЬ",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "matter-js": "^0.20.0"
+  }
+}
