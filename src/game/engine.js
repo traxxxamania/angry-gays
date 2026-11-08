@@ -8,14 +8,17 @@ const M = Matter;
 const W = 1600, H = 900, GY = 820;
 const SLING = { x: 250, y: 660 };
 const DRAG_MAX = 135;
-const LAUNCH_K = 0.21;
+const LAUNCH_K = 0.16;         // сила рогатки: макс. скорость = DRAG_MAX*K ≈ 21.6 px/шаг
 const BIRD_R = 30;
+const FIXED_STEP = 1000 / 60;  // 16.7 мс — фиксированный шаг физики (≤ 33 мс)
+const ENEMY_FALL_SPEED = 4;    // порог скорости (px/шаг): выше него падение наносит урон свинке
+const ENEMY_FALL_DMG = 4;      // множитель урона от падения: dmg = speed * K
 
 const MATS = {
-  wood:   { hp: 60,  density: 0.0012, friction: 0.6 },
-  ice:    { hp: 30,  density: 0.0009, friction: 0.15 },
-  stone:  { hp: 140, density: 0.0022, friction: 0.7 },
-  powder: { hp: 10,  density: 0.0011, friction: 0.6 }
+  wood:   { hp: 60,  density: 0.0012, friction: 0.3 },
+  ice:    { hp: 15,  density: 0.0005, friction: 0.05 },   // лёд ломается легко, малая плотность
+  stone:  { hp: 110, density: 0.0022, friction: 0.35 },
+  powder: { hp: 10,  density: 0.0011, friction: 0.3 }
 };
 
 const ACCS = ['cap', 'helmet', 'straw', 'bunny'];
@@ -30,6 +33,7 @@ export default class GameEngine {
     this.level = buildLevel(levelIdx);
 
     this.engine = M.Engine.create();
+    this.engine.gravity.scale = 0.0003; // земная гравитация ~9.8 м/с²
     this.world = this.engine.world;
     this.meta = {};
     this.particles = [];
@@ -44,20 +48,20 @@ export default class GameEngine {
     this.predict = null;
     this.raf = null;
     this.lastT = 0;
-    this.spawnCount = 0;
+    this.acc = 0;
     this.decor = makeDecor();
     this._endTimer = null;
 
     // рельеф (насыпи)
     (this.level.terrain || []).forEach((t) => {
-      const body = M.Bodies.rectangle(t.x, t.y, t.w, t.h, { isStatic: true, friction: 0.8, label: 'ground' });
+      const body = M.Bodies.rectangle(t.x, t.y, t.w, t.h, { isStatic: true, friction: 0.3, label: 'ground' });
       body.agTerrain = true;
       M.Composite.add(this.world, body);
     });
 
     // земля
     M.Composite.add(this.world, M.Bodies.rectangle(W / 2, GY + 60, W * 2, 120, {
-      isStatic: true, friction: 0.8, label: 'ground'
+      isStatic: true, friction: 0.3, label: 'ground'
     }));
 
     this.level.blocks.forEach((b) => this._spawnBlock(b));
@@ -65,7 +69,6 @@ export default class GameEngine {
     this.totalBlocks = this.level.blocks.length;
 
     this.queue = this.level.birds;
-    this._nextBird();
 
     M.Events.on(this.engine, 'collisionStart', (ev) => this._collisions(ev));
     this._bindInput();
@@ -104,29 +107,37 @@ export default class GameEngine {
 
   _spawnEnemy(e, acc) {
     const body = M.Bodies.circle(e.x, e.y, 28, { density: 0.001, friction: 0.5, restitution: 0.1 });
-    body.agMeta = { kind: 'enemy', hp: 30, flash: 0, dead: false, acc };
+    body.agMeta = { kind: 'enemy', hp: 12, flash: 0, dead: false, acc };
     M.Composite.add(this.world, body);
     this.meta[body.id] = body.agMeta;
     this.aliveEnemies++;
     return body;
   }
 
-  _nextBird() {
-    if (this.currentBird) M.Composite.remove(this.world, this.currentBird.body);
-    this.currentBird = null;
-    if (this.ending) return;
-    if (this.queue <= 0) { this._finish(false); return; }
+  // Зарядить друга (по индексу) в рогатку. Вызывается из React по клику на панель.
+  loadBird(faceIndex) {
+    if (this.ending || this.paused || this.currentBird || this.queue <= 0) return false;
     this.queue--;
-    const face = Birds.get(this.spawnCount++);
+    const face = Birds.get(faceIndex);
     const body = M.Bodies.circle(SLING.x, SLING.y, BIRD_R, {
-      density: 0.0012, friction: 0.4, restitution: 0.25
+      density: 0.0012, friction: 0.4, restitution: 0.05, frictionAir: 0.001
     });
     body.agMeta = { kind: 'bird', dead: false, face };
     M.Composite.add(this.world, body);
     M.Body.setStatic(body, true);
     this.meta[body.id] = body.agMeta;
     this.currentBird = { body, state: 'sling', rest: 0, face };
-    if (this.hooks.onBirds) this.hooks.onBirds(this.queue + 1, face);
+    if (this.hooks.onBirds) this.hooks.onBirds(this.queue, face);
+    return true;
+  }
+
+  // Птица завершила полёт: рогатка пустеет, ждём выбора следующего друга.
+  _birdDone() {
+    if (this.currentBird) M.Composite.remove(this.world, this.currentBird.body);
+    this.currentBird = null;
+    if (this.ending) return;
+    if (this.queue <= 0) { this._finish(false); return; }
+    if (this.hooks.onBirdDone) this.hooks.onBirdDone();
   }
 
   /* =============== ввод =============== */
@@ -174,7 +185,8 @@ export default class GameEngine {
     const v = M.Vector.sub({ x: SLING.x, y: SLING.y }, b.position);
     if (M.Vector.magnitude(v) < 6) return null;
     const e = M.Engine.create();
-    const tmp = M.Bodies.circle(0, 0, BIRD_R, { density: 0.0012 });
+    e.gravity.scale = 0.0003;
+    const tmp = M.Bodies.circle(0, 0, BIRD_R, { density: 0.0012, frictionAir: 0.001 });
     M.Body.setPosition(tmp, { x: b.position.x, y: b.position.y });
     M.Body.setVelocity(tmp, { x: v.x * LAUNCH_K, y: v.y * LAUNCH_K });
     M.Composite.add(e.world, tmp);
@@ -197,7 +209,8 @@ export default class GameEngine {
     const ms = self.agMeta, mo = other.agMeta;
     if (!ms || ms.dead) return;
     if (other.label === 'ground') {
-      if (ms.kind === 'enemy' && self.speed > 9 && this.time > 1) this._hit(self, ms, self.speed * 3);
+      if (ms.kind === 'enemy' && self.speed > ENEMY_FALL_SPEED && this.time > 1)
+        this._hit(self, ms, self.speed * ENEMY_FALL_DMG);
       return;
     }
     if (!mo || mo.dead) return;
@@ -215,6 +228,8 @@ export default class GameEngine {
       }
     } else if (ms.kind === 'enemy' && mo.kind === 'block') {
       if (rv > 8) this._hit(other, mo, rv * self.mass * 0.9);
+      // свинка получает урон от удара о блок на скорости (падение)
+      if (self.speed > ENEMY_FALL_SPEED && this.time > 1) this._hit(self, ms, self.speed * ENEMY_FALL_DMG);
     }
   }
 
@@ -325,9 +340,22 @@ export default class GameEngine {
   /* =============== цикл =============== */
   _loop() {
     this.raf = requestAnimationFrame((t) => {
-      const dt = Math.min(40, t - this.lastT) / 1000;
+      let ms = t - this.lastT;
       this.lastT = t;
-      if (!this.paused) this._step(dt);
+      if (ms > 100) ms = 100; // пропуск пауз (переключение вкладки)
+      if (!this.paused) {
+        this.acc += ms;
+        let n = 0;
+        // фиксированный шаг физики (≤33 мс) — не зависит от 60/120/144 Гц
+        while (this.acc >= FIXED_STEP && n < 4) {
+          this._step(FIXED_STEP / 1000);
+          this.acc -= FIXED_STEP;
+          n++;
+        }
+        if (n === 4) this.acc = 0; // сброс накопившегося отставания
+      } else {
+        this.acc = 0;
+      }
       this._draw();
       if (this.raf !== null) this._loop();
     });
@@ -335,15 +363,17 @@ export default class GameEngine {
 
   _step(dt) {
     this.time += dt;
-    M.Engine.update(this.engine, 1000 / 60);
+    M.Engine.update(this.engine, FIXED_STEP);
 
     const cb = this.currentBird;
     if (cb && cb.state === 'fly') {
       cb.flyTime += dt;
       const b = cb.body;
+      // птица летит «носом» по траектории: выравниваем угол по направлению скорости
+      M.Body.setAngle(b, Math.atan2(b.velocity.y, b.velocity.x));
       if (b.speed < 0.35 && b.angularSpeed < 0.05) cb.rest += dt; else cb.rest = 0;
       const oob = b.position.x < -200 || b.position.x > W + 200 || b.position.y > H + 200;
-      if (cb.rest > 0.9 || oob || cb.flyTime > 12) this._nextBird();
+      if (cb.rest > 0.9 || oob || cb.flyTime > 12) this._birdDone();
     }
 
     M.Composite.allBodies(this.world).forEach((b) => {
@@ -378,7 +408,6 @@ export default class GameEngine {
     drawSky(ctx, this.decor);
     drawGround(ctx, this.decor);
     drawTerrain(ctx, this.world);
-    this._drawQueue(ctx);
     drawSlingBase(ctx);
 
     const cb = this.currentBird;
@@ -422,13 +451,6 @@ export default class GameEngine {
     ctx.restore();
     if (this.hooks.onScore) this.hooks.onScore(this.score);
   }
-
-  _drawQueue(ctx) {
-    for (let i = 0; i < this.queue; i++) {
-      const face = Birds.get(this.spawnCount + i);
-      drawFaceSprite(ctx, face, 80 + i * 66, GY - 26, 52, Math.sin(i * 2.3) * .12);
-    }
-  }
 }
 
 /* =============== декорации =============== */
@@ -448,6 +470,9 @@ function drawSky(ctx, decor) {
   sky.addColorStop(0, '#67b9ea'); sky.addColorStop(.55, '#9fd4f2'); sky.addColorStop(1, '#dcf1fb');
   ctx.fillStyle = sky; ctx.fillRect(0, 0, W, GY);
 
+  // солнце с ореолом
+  drawSun(ctx, 1360, 140);
+
   ctx.fillStyle = 'rgba(255,255,255,.28)';
   wave(ctx, 260, 42);
 
@@ -466,6 +491,20 @@ function wave(ctx, y, a) {
   ctx.beginPath(); ctx.moveTo(0, y);
   for (let x = 0; x <= W; x += 80) ctx.quadraticCurveTo(x + 40, y - a, x + 80, y);
   ctx.lineTo(W, 0); ctx.lineTo(0, 0); ctx.fill();
+}
+function drawSun(ctx, x, y) {
+  // ореол
+  const halo = ctx.createRadialGradient(x, y, 24, x, y, 170);
+  halo.addColorStop(0, 'rgba(255,246,190,.95)');
+  halo.addColorStop(.4, 'rgba(255,233,140,.55)');
+  halo.addColorStop(1, 'rgba(255,233,140,0)');
+  ctx.fillStyle = halo;
+  ctx.beginPath(); ctx.arc(x, y, 170, 0, Math.PI * 2); ctx.fill();
+  // диск солнца
+  ctx.fillStyle = '#fff7cd';
+  ctx.beginPath(); ctx.arc(x, y, 44, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#ffe98a';
+  ctx.beginPath(); ctx.arc(x, y, 35, 0, Math.PI * 2); ctx.fill();
 }
 function birdSil(ctx, x, y, s) {
   ctx.save(); ctx.translate(x, y); ctx.scale(s, s);
@@ -556,11 +595,9 @@ function drawFaceSprite(ctx, face, x, y, size, angle) {
   ctx.translate(x, y);
   ctx.rotate(angle);
   if (face && face.canvas) {
-    ctx.fillStyle = '#5b3a1e';
-    ctx.beginPath();
-    ctx.moveTo(-size * .42, 0); ctx.lineTo(-size * .68, -size * .14); ctx.lineTo(-size * .62, size * .1);
-    ctx.closePath(); ctx.fill();
-    ctx.drawImage(face.canvas, -size / 2, -size / 2, size, size);
+    const w = face.canvas.width, h = face.canvas.height;
+    const s = Math.min(size / w, size / h);
+    ctx.drawImage(face.canvas, -w * s / 2, -h * s / 2, w * s, h * s);
   } else {
     ctx.fillStyle = '#f4c542';
     ctx.beginPath(); ctx.arc(0, 0, size / 2, 0, Math.PI * 2); ctx.fill();
@@ -588,7 +625,7 @@ function drawBlock(ctx, body, m) {
     const wg = ctx.createLinearGradient(x, y, x, y + h);
     wg.addColorStop(0, '#e09a45'); wg.addColorStop(1, '#c37a2c');
     ctx.fillStyle = wg; ctx.fill();
-    ctx.strokeStyle = '#8a4f16'; ctx.lineWidth = 4; ctx.stroke();
+    ctx.strokeStyle = '#3d2714'; ctx.lineWidth = 5; ctx.stroke();
     ctx.save(); ctx.clip();
     ctx.strokeStyle = 'rgba(122,74,26,.55)'; ctx.lineWidth = 2.5;
     if (w > h) {
@@ -600,7 +637,7 @@ function drawBlock(ctx, body, m) {
     ctx.restore();
   } else if (m.mat === 'ice') {
     ctx.fillStyle = 'rgba(177,227,255,.62)'; ctx.fill();
-    ctx.strokeStyle = 'rgba(122,196,238,.95)'; ctx.lineWidth = 4; ctx.stroke();
+    ctx.strokeStyle = '#224e6b'; ctx.lineWidth = 5; ctx.stroke();
     ctx.save(); ctx.clip();
     ctx.strokeStyle = 'rgba(255,255,255,.75)'; ctx.lineWidth = 5;
     ctx.beginPath(); ctx.moveTo(x + w * .25, y - 4); ctx.lineTo(x - 4, y + h * .5); ctx.stroke();
@@ -608,7 +645,7 @@ function drawBlock(ctx, body, m) {
     ctx.restore();
   } else if (m.mat === 'stone') {
     ctx.fillStyle = '#c6cace'; ctx.fill();
-    ctx.strokeStyle = '#8d949b'; ctx.lineWidth = 4; ctx.stroke();
+    ctx.strokeStyle = '#3a3d42'; ctx.lineWidth = 5; ctx.stroke();
     ctx.save(); ctx.clip();
     ctx.strokeStyle = 'rgba(90,98,105,.5)'; ctx.lineWidth = 2.5;
     for (let by = y + h / 3; by < y + h; by += h / 3) { ctx.beginPath(); ctx.moveTo(x, by); ctx.lineTo(x + w, by); ctx.stroke(); }
@@ -617,7 +654,7 @@ function drawBlock(ctx, body, m) {
     ctx.restore();
   } else {
     ctx.fillStyle = '#c0533b'; ctx.fill();
-    ctx.strokeStyle = '#7a2e1c'; ctx.lineWidth = 4; ctx.stroke();
+    ctx.strokeStyle = '#3c1610'; ctx.lineWidth = 5; ctx.stroke();
     ctx.fillStyle = '#ffe8b0'; ctx.font = 'bold ' + Math.min(22, h * .3) + 'px Comic Sans MS';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText('TNT', 0, 0);
@@ -646,7 +683,7 @@ function drawEnemy(ctx, body, m) {
   grd.addColorStop(0, '#b5e06e'); grd.addColorStop(1, '#77b23c');
   ctx.fillStyle = grd;
   ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
-  ctx.strokeStyle = 'rgba(40,70,15,.6)'; ctx.lineWidth = 2.5; ctx.stroke();
+  ctx.strokeStyle = '#243805'; ctx.lineWidth = 5; ctx.stroke();
 
   // пятачок
   ctx.fillStyle = '#d3ecab';

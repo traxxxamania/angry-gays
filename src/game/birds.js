@@ -1,5 +1,6 @@
-/* birds.js — лица друзей как птички. Фото из public/birds/*.webp обрезаются
- * в круг на canvas и используются вместо обычных птиц. */
+/* birds.js — лица друзей как птички. Фото из public/birds/*.webp рисуются
+ * целиком в исходной форме (прямоугольник/квадрат, без закругления и обрезки)
+ * на canvas и используются вместо обычных птиц. */
 
 const FILES = [
   ['/birds/angrygay.webp', 'Angry'],
@@ -13,20 +14,12 @@ const sprites = [];   // { name, canvas, url }
 let readyFlag = false;
 let loadPromise = null;
 
-function circleSprite(img, name) {
-  const S = 256;
-  const c = document.createElement('canvas'); c.width = c.height = S;
+function fullSprite(img, name) {
+  const c = document.createElement('canvas');
+  c.width = img.naturalWidth;
+  c.height = img.naturalHeight;
   const x = c.getContext('2d');
-  const side = Math.min(img.naturalWidth, img.naturalHeight);
-  x.save();
-  x.beginPath(); x.arc(S / 2, S / 2, S / 2 - 8, 0, Math.PI * 2); x.clip();
-  x.drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side, 8, 8, S - 16, S - 16);
-  x.restore();
-  // мультяшная обводка
-  x.lineWidth = 10; x.strokeStyle = 'rgba(45,32,18,.9)';
-  x.beginPath(); x.arc(S / 2, S / 2, S / 2 - 9, 0, Math.PI * 2); x.stroke();
-  x.lineWidth = 3; x.strokeStyle = 'rgba(255,255,255,.35)';
-  x.beginPath(); x.arc(S / 2, S / 2, S / 2 - 18, 0, Math.PI * 2); x.stroke();
+  x.drawImage(img, 0, 0);
   return { name, canvas: c, url: c.toDataURL() };
 }
 
@@ -57,7 +50,7 @@ export function load() {
         sprites[i] = sprite;
         if (--pending === 0) { readyFlag = true; resolve(sprites); }
       };
-      img.onload = () => done(circleSprite(img, f[1]));
+      img.onload = () => done(fullSprite(img, f[1]));
       img.onerror = () => done(fallback(f[1]));
       img.src = f[0];
     });

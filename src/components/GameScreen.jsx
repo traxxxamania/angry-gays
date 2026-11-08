@@ -13,6 +13,12 @@ export default function GameScreen({ levelIdx, onExit, onRestart, onNext }) {
   const [paused, setPaused] = useState(false);
   const [birdsReady, setBirdsReady] = useState(Birds.isReady());
 
+  // выбор птиц происходит прямо в игре
+  const level = LEVELS[levelIdx];
+  const [remaining, setRemaining] = useState(level.birds);
+  const [used, setUsed] = useState(() => new Set()); // индексы использованных друзей
+  const [active, setActive] = useState(null);         // индекс друга, заряженного в рогатку
+
   // подгонка canvas под окно (16:9)
   useEffect(() => {
     function fit() {
@@ -33,12 +39,24 @@ export default function GameScreen({ levelIdx, onExit, onRestart, onNext }) {
     const engine = new GameEngine(canvasRef.current, levelIdx, {
       onScore: (s) => { if (scoreRef.current) scoreRef.current.textContent = 'Score: ' + s; },
       onWin: (score, stars) => { recordWin(levelIdx, stars, score); setResult({ type: 'win', score, stars }); },
-      onLose: (score) => setResult({ type: 'fail', score })
+      onLose: (score) => setResult({ type: 'fail', score }),
+      onBirdDone: () => setActive(null)
     });
     engineRef.current = engine;
     if (import.meta.env.DEV) window.__game = engine;
     return () => { engine.destroy(); engineRef.current = null; };
   }, [levelIdx, birdsReady]);
+
+  const pickBird = (i) => {
+    const engine = engineRef.current;
+    if (!engine || result || paused) return;
+    if (used.has(i) || remaining <= 0 || active !== null) return;
+    if (engine.loadBird(i)) {
+      setUsed((prev) => new Set(prev).add(i));
+      setRemaining((r) => r - 1);
+      setActive(i);
+    }
+  };
 
   const doPause = () => {
     if (result) return;
@@ -58,6 +76,31 @@ export default function GameScreen({ levelIdx, onExit, onRestart, onNext }) {
         <div className="hud-score-box">
           <div className="hud-high">Highscore: {bestOf(levelIdx)}</div>
           <div className="hud-score" ref={scoreRef}>Score: 0</div>
+        </div>
+      </div>
+
+      <div className="bird-panel">
+        <div className="bird-panel-count">Птиц осталось: {remaining}</div>
+        <div className="bird-row">
+          {birdsReady && Birds.names().map((name, i) => {
+            const b = Birds.get(i);
+            const isUsed = used.has(i);
+            const isActive = active === i;
+            const canPick = !isUsed && active === null && remaining > 0 && !result && !paused;
+            return (
+              <button
+                key={name}
+                type="button"
+                className={'friend-btn' + (isActive ? ' active' : '') + (isUsed ? ' used' : '')}
+                disabled={!canPick}
+                onClick={() => pickBird(i)}
+                title={isUsed ? 'Использован' : 'Зарядить ' + name}
+              >
+                <img src={b && b.url} alt={name} />
+                <b>{name}</b>
+              </button>
+            );
+          })}
         </div>
       </div>
 

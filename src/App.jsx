@@ -21,7 +21,7 @@ export default function App() {
           levelIdx={route.level}
           onExit={() => setRoute({ name: 'levels' })}
           onRestart={() => setRoute({ name: 'game', level: route.level, attempt: route.attempt + 1 })}
-          onNext={() => setRoute({ name: 'game', level: route.level + 1, attempt: 0 })}
+          onNext={() => startLevel(route.level + 1)}
         />
       )}
     </>

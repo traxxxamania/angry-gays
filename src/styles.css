@@ -38,6 +38,7 @@ body {
 .roster-item { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 13px; }
 .roster-item img {
   width: 58px; height: 58px; border-radius: 50%;
+  object-fit: cover;
   box-shadow: 0 4px 10px rgba(0,0,0,.4); background: #0a0f1a;
 }
 
@@ -76,6 +77,33 @@ body {
 .level-card .lc-info { font-size: 13px; opacity: .75; margin-top: 6px; }
 .back { margin-top: 18px; }
 
+/* --- выбор птиц --- */
+.bird-grid { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; max-width: 760px; }
+.bird-card {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  width: 120px; padding: 14px;
+  font: inherit; font-weight: 700; color: #fff; cursor: pointer;
+  background: linear-gradient(#2c4163, #1c2c46);
+  border: 3px solid transparent; border-radius: 18px;
+  box-shadow: 0 6px 0 #12203a, 0 10px 18px rgba(0,0,0,.3);
+  transition: transform .1s;
+}
+.bird-card img {
+  width: 74px; height: 74px; border-radius: 50%;
+  background: #0a0f1a; box-shadow: 0 4px 10px rgba(0,0,0,.4);
+}
+.bird-card b { font-size: 15px; }
+.bird-card:hover { transform: translateY(-3px); }
+.bird-card.sel {
+  border-color: #ffd54f;
+  background: linear-gradient(#4d5c22, #35451a);
+  box-shadow: 0 0 0 3px rgba(255,213,79,.35), 0 6px 0 #24331a, 0 10px 18px rgba(0,0,0,.3);
+}
+.pick-counter {
+  font-family: 'Comic Sans MS', cursive; font-size: 24px; font-weight: 900;
+  color: #ffe14d; text-shadow: 0 2px 0 rgba(0,0,0,.35);
+}
+
 /* --- игра --- */
 #hud {
   width: 100%; display: flex; align-items: flex-start; justify-content: space-between;
@@ -99,6 +127,40 @@ body {
 }
 .hud-high { font-size: 24px; }
 .hud-score { font-size: 26px; }
+
+/* --- панель выбора друзей в игре --- */
+.bird-panel {
+  width: 100%; display: flex; align-items: center; justify-content: center;
+  gap: 14px; padding: 8px 14px; flex-wrap: wrap;
+  background: rgba(8, 12, 22, .5);
+  border-top: 2px solid rgba(255,255,255,.08);
+  z-index: 6; position: relative;
+}
+.bird-panel-count {
+  font-family: 'Comic Sans MS', 'Chalkboard SE', cursive; font-weight: 900;
+  font-size: 18px; color: #ffe14d; white-space: nowrap;
+  text-shadow: 0 2px 0 rgba(0,0,0,.35);
+}
+.bird-row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.friend-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  font: inherit; font-weight: 700; color: #fff; cursor: pointer;
+  background: linear-gradient(#2c4163, #1c2c46);
+  border: 3px solid transparent; border-radius: 12px;
+  padding: 6px 8px; min-width: 74px;
+  box-shadow: 0 4px 8px rgba(0,0,0,.35);
+  transition: transform .1s, filter .15s;
+}
+.friend-btn img { width: 48px; height: 48px; object-fit: contain; background: #0a0f1a; border-radius: 8px; }
+.friend-btn b { font-size: 12px; }
+.friend-btn:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.1); }
+.friend-btn.active {
+  border-color: #ffd54f;
+  background: linear-gradient(#4d5c22, #35451a);
+  box-shadow: 0 0 0 3px rgba(255,213,79,.35), 0 4px 8px rgba(0,0,0,.35);
+}
+.friend-btn.used { opacity: .35; filter: grayscale(1); cursor: not-allowed; }
+.friend-btn:disabled { cursor: not-allowed; }
 
 .canvas-wrap { flex: 1; width: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; }
 .canvas-wrap canvas { display: block; touch-action: none; cursor: crosshair; }
