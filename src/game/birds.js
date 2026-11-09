@@ -5,9 +5,9 @@
 const FILES = [
   ['/birds/angrygay.webp', 'Angry'],
   ['/birds/ivangay.webp', 'Ivan'],
-  ['/birds/ochkarikgay.webp', 'Очкарик'],
+  ['/birds/ochkarikgay.webp', 'Ochkarik'],
   ['/birds/sigmagay.webp', 'Sigma'],
-  ['/birds/smatrgay.webp', 'Сматр']
+  ['/birds/smatrgay.webp', 'Smatr']
 ];
 
 const sprites = [];   // { name, canvas, url }

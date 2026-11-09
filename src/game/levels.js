@@ -28,7 +28,7 @@ export const LEVELS = [
   {
     name: '1. Застава у ручья',
     hint: 'Три домика на холме — как на классной фотке',
-    birds: 3,
+    birds: 4,
     build() {
       const L = [], E = [];
       const HILL = mound(1290, 760, 170);
@@ -62,7 +62,7 @@ export const LEVELS = [
   {
     name: '2. Стеклянный город',
     hint: 'Камень снизу, стекло сверху, копов много',
-    birds: 4,
+    birds: 5,
     build() {
       const L = [], E = [];
       // каменное основание
@@ -90,7 +90,7 @@ export const LEVELS = [
   {
     name: '3. Дерево у тёмной горы',
     hint: 'Деревянная пагода и тёмный холм',
-    birds: 4,
+    birds: 5,
     build() {
       const L = [], E = [];
       const HILL = mound(1390, 440, 320);
@@ -121,7 +121,7 @@ export const LEVELS = [
   {
     name: '4. Два холма',
     hint: 'Копы расселились по обоим холмам',
-    birds: 4,
+    birds: 5,
     build() {
       const L = [], E = [];
       const H1 = mound(1150, 480, 150);
