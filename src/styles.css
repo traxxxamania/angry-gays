@@ -77,6 +77,9 @@ kbd {
   touch-action: none;
 }
 
+#game-canvas:focus { outline: none; }
+#game-canvas:focus-visible { outline: 2px solid var(--accent); outline-offset: -6px; }
+
 .game-ui {
   position: fixed;
   z-index: 2;
@@ -371,8 +374,7 @@ kbd {
 }
 
 .instruction-icon svg { width: 22px; height: 22px; }
-.instruction-copy { display: grid; gap: 3px; }
-.instruction-copy { min-width: 0; }
+.instruction-copy { display: grid; gap: 3px; min-width: 0; }
 .instruction-copy strong { font-size: 12.5px; font-weight: 800; }
 .instruction-copy span { color: var(--text-soft); font-size: 11px; }
 
@@ -670,6 +672,7 @@ kbd {
   .brand-mark { width: 36px; height: 36px; }
   .brand { gap: 6px; padding-left: 6px; }
   .ammo-pip { width: 7px; height: 7px; }
+  .ammo-pips { display: none; }
   .instruction-copy span { max-width: 160px; }
 }
 

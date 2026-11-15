@@ -89,6 +89,7 @@ function updateHud(message, state = "ready") {
 
 function startGame() {
   startOverlay.hidden = true;
+  canvas.focus({ preventScroll: true });
 }
 
 function showResult(won) {
@@ -98,6 +99,7 @@ function showResult(won) {
     ? "Отличный выстрел. Нажми «Сыграть ещё», чтобы пройти заново."
     : "Не всё получилось сбить. Нажми «Сыграть ещё» и попробуй снова.";
   resultOverlay.hidden = false;
+  resultButton.focus({ preventScroll: true });
 }
 
 function loadBird() {
@@ -132,6 +134,7 @@ function resetGame() {
   camera.y = homeCameraY(viewport().height);
   resultOverlay.hidden = true;
   loadBird();
+  canvas.focus({ preventScroll: true });
 }
 
 function updateCamera(delta) {
@@ -539,7 +542,26 @@ restartButton.addEventListener("click", resetGame);
 resultButton.addEventListener("click", resetGame);
 window.addEventListener("keydown", (event) => {
   const key = event.key.toLowerCase();
-  if (!startOverlay.hidden && (key === "enter" || key === " " || key === "r")) {
+
+  const activeOverlay = !startOverlay.hidden ? startOverlay : !resultOverlay.hidden ? resultOverlay : null;
+  if (key === "tab" && activeOverlay) {
+    const focusable = [...activeOverlay.querySelectorAll(
+      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    )];
+    if (focusable.length) {
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (!activeOverlay.contains(document.activeElement)
+        || (event.shiftKey && document.activeElement === first)
+        || (!event.shiftKey && document.activeElement === last)) {
+        event.preventDefault();
+        (event.shiftKey ? last : first).focus({ preventScroll: true });
+      }
+    }
+    return;
+  }
+
+  if (!startOverlay.hidden && key === "r") {
     startGame();
     return;
   }
@@ -549,4 +571,5 @@ window.addEventListener("resize", resizeCanvas);
 
 resizeCanvas();
 resetGame();
+startButton.focus({ preventScroll: true });
 requestAnimationFrame(frame);
