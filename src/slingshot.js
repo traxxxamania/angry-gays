@@ -192,9 +192,10 @@ export function createSlingshot(canvas, { getBird, getCamera, getWorld, onLaunch
     let x = bird.position.x;
     let y = bird.position.y;
     const initialVelocity = calculateLaunchVelocity(bird.position);
-    let velocityX = initialVelocity.x;
-    let velocityY = initialVelocity.y;
-    const delta = PHYSICS.fixedDelta;
+    const subSteps = PHYSICS.integrationSubSteps;
+    let velocityX = initialVelocity.x / subSteps;
+    let velocityY = initialVelocity.y / subSteps;
+    const delta = PHYSICS.fixedDelta / subSteps;
     const gravityStepX = PHYSICS.gravity.x * PHYSICS.gravity.scale * delta * delta;
     const gravityStepY = PHYSICS.gravity.y * PHYSICS.gravity.scale * delta * delta;
     const airFactor = 1 - MATERIALS.bird.frictionAir * (delta / (1000 / 60));
@@ -204,27 +205,38 @@ export function createSlingshot(canvas, { getBird, getCamera, getWorld, onLaunch
       : [];
     const points = [{ x, y }];
     let hitObstacle = false;
+    let trajectoryEnded = false;
 
     for (let step = 0; step < SLINGSHOT.trajectorySteps; step += 1) {
-      velocityX = velocityX * airFactor + gravityStepX;
-      velocityY = velocityY * airFactor + gravityStepY;
-      x += velocityX;
-      y += velocityY;
-      if (y > WORLD.height + bird.circleRadius || x > WORLD.width || x < -bird.circleRadius) break;
-      points.push({ x, y });
+      for (let subStep = 0; subStep < subSteps; subStep += 1) {
+        velocityX = velocityX * airFactor + gravityStepX;
+        velocityY = velocityY * airFactor + gravityStepY;
+        x += velocityX;
+        y += velocityY;
+        if (y > WORLD.height + bird.circleRadius || x > WORLD.width || x < -bird.circleRadius) {
+          trajectoryEnded = true;
+          break;
+        }
+        points.push({ x, y });
 
-      Body.setPosition(trajectoryProbe, { x, y }, false);
-      if (obstacles.length && Query.collides(trajectoryProbe, obstacles).length) {
-        hitObstacle = true;
+        Body.setPosition(trajectoryProbe, { x, y }, false);
+        if (obstacles.length && Query.collides(trajectoryProbe, obstacles).length) {
+          hitObstacle = true;
+          trajectoryEnded = true;
+          break;
+        }
+      }
+      if (trajectoryEnded) {
         break;
       }
     }
 
     context.save();
     context.fillStyle = "rgb(255 255 255 / 74%)";
-    for (let index = SLINGSHOT.trajectoryDotEvery; index < points.length; index += SLINGSHOT.trajectoryDotEvery) {
+    const dotEvery = SLINGSHOT.trajectoryDotEvery * subSteps;
+    for (let index = dotEvery; index < points.length; index += dotEvery) {
       const point = points[index];
-      const radius = index < 24 ? 2.6 : 1.8;
+      const radius = index < 24 * subSteps ? 2.6 : 1.8;
       context.beginPath();
       context.arc(point.x, point.y, radius, 0, Math.PI * 2);
       context.fill();

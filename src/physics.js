@@ -40,8 +40,10 @@ function calculateImpactImpulse(bodyA, bodyB, collision) {
 
   const velocityA = velocityAt(bodyA, point);
   const velocityB = velocityAt(bodyB, point);
-  const relativeX = (velocityA.x - velocityB.x) * (1000 / PHYSICS.fixedDelta);
-  const relativeY = (velocityA.y - velocityB.y) * (1000 / PHYSICS.fixedDelta);
+  const deltaTime = Math.min(bodyA.deltaTime || PHYSICS.fixedDelta, bodyB.deltaTime || PHYSICS.fixedDelta);
+  const velocityScale = 1000 / deltaTime;
+  const relativeX = (velocityA.x - velocityB.x) * velocityScale;
+  const relativeY = (velocityA.y - velocityB.y) * velocityScale;
   const normalSpeed = Math.abs(relativeX * normal.x + relativeY * normal.y);
   const armA = (point.x - bodyA.position.x) * normal.y - (point.y - bodyA.position.y) * normal.x;
   const armB = (point.x - bodyB.position.x) * normal.y - (point.y - bodyB.position.y) * normal.x;
@@ -118,7 +120,10 @@ export function createPhysics() {
     engine,
     world: engine.world,
     step(delta = PHYSICS.fixedDelta) {
-      Engine.update(engine, delta);
+      const stepDelta = delta / PHYSICS.integrationSubSteps;
+      for (let step = 0; step < PHYSICS.integrationSubSteps; step += 1) {
+        Engine.update(engine, stepDelta);
+      }
     },
     takeBreakEvents() {
       return breakEvents.splice(0);

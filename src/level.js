@@ -1,4 +1,4 @@
-import { MATERIALS, WORLD } from "./config.js";
+import { MATERIALS, PHYSICS, WORLD } from "./config.js";
 import { materialOptions, tagBody } from "./physics.js";
 
 const { Bodies, Composite } = window.Matter;
@@ -7,7 +7,7 @@ function addBlock(world, materialId, x, y, width, height, angle = 0) {
   const body = Bodies.rectangle(x, y, width, height, {
     ...materialOptions(materialId),
     angle,
-    sleepThreshold: 120,
+    sleepThreshold: PHYSICS.sleepThreshold * PHYSICS.integrationSubSteps,
     chamfer: { radius: Math.min(3, width / 10, height / 10) },
   });
   tagBody(body, materialId, { destructible: true });
@@ -18,7 +18,7 @@ function addBlock(world, materialId, x, y, width, height, angle = 0) {
 function addTarget(world, x, y, radius = 19) {
   const body = Bodies.circle(x, y, radius, {
     ...materialOptions("target"),
-    sleepThreshold: 120,
+    sleepThreshold: PHYSICS.sleepThreshold * PHYSICS.integrationSubSteps,
   });
   tagBody(body, "target", { destructible: true });
   Composite.add(world, body);
@@ -72,7 +72,7 @@ export function createLevel(world) {
 export function createBird(world, x, y, radius) {
   const bird = Bodies.circle(x, y, radius, {
     ...materialOptions("bird"),
-    sleepThreshold: 60,
+    sleepThreshold: 60 * PHYSICS.integrationSubSteps,
   });
   tagBody(bird, "bird");
   window.Matter.Body.setStatic(bird, true);

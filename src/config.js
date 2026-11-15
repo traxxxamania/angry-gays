@@ -10,6 +10,8 @@ export const PHYSICS = Object.freeze({
   velocityIterations: 10,
   constraintIterations: 4,
   fixedDelta: 1000 / 60,
+  integrationSubSteps: 3,
+  sleepThreshold: 120,
   maxFrameDelta: 100,
   maxSubSteps: 6,
   minDamageSpeed: 90,
@@ -19,7 +21,7 @@ export const PHYSICS = Object.freeze({
 export const SLINGSHOT = Object.freeze({
   anchor: Object.freeze({ x: 245, y: 630 }),
   maxPullDistance: 145,
-  launchSpeed: 0.24,
+  launchSpeed: 0.22,
   birdRadius: 20,
   minPullDistance: 9,
   trajectorySteps: 120,
@@ -95,7 +97,7 @@ export const MATERIALS = Object.freeze({
   }),
   bird: Object.freeze({
     label: "Снаряд",
-    density: 0.0034,
+    density: 0.004,
     friction: 0.48,
     frictionStatic: 0.62,
     frictionAir: 0.0018,
