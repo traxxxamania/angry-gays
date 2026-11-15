@@ -44,22 +44,34 @@ function calculateImpactImpulse(bodyA, bodyB, collision) {
   const velocityScale = 1000 / deltaTime;
   const relativeX = (velocityA.x - velocityB.x) * velocityScale;
   const relativeY = (velocityA.y - velocityB.y) * velocityScale;
-  const normalSpeed = Math.abs(relativeX * normal.x + relativeY * normal.y);
+  // Matter's collision normal points out from bodyB toward bodyA. Only the
+  // velocity that closes the gap should count as an impact; separating bodies
+  // can still overlap briefly while the solver corrects their positions.
+  const closingSpeed = Math.max(0, -(relativeX * normal.x + relativeY * normal.y));
   const armA = (point.x - bodyA.position.x) * normal.y - (point.y - bodyA.position.y) * normal.x;
   const armB = (point.x - bodyB.position.x) * normal.y - (point.y - bodyB.position.y) * normal.x;
   const inverseMass = (bodyA.isStatic ? 0 : bodyA.inverseMass + armA * armA * bodyA.inverseInertia)
     + (bodyB.isStatic ? 0 : bodyB.inverseMass + armB * armB * bodyB.inverseInertia);
   const restitution = collision.pair?.restitution ?? Math.max(bodyA.restitution, bodyB.restitution);
-  const impulse = inverseMass > 0 ? (normalSpeed * (1 + restitution)) / inverseMass : 0;
-  return { normalSpeed, impulse };
+  const impulse = inverseMass > 0 ? (closingSpeed * (1 + restitution)) / inverseMass : 0;
+  return { closingSpeed, impulse };
 }
 
-function applyImpactDamage(body, impulse, normalSpeed) {
+function applyImpactDamage(body, impulse, closingSpeed, otherMaterialId) {
   const data = body.gameData;
   if (!data?.destructible || data.destroyed || data.hp <= 0) return;
 
   const material = MATERIALS[data.materialId];
-  if (normalSpeed < material.minImpactSpeed) return;
+  if (closingSpeed < material.minImpactSpeed) return;
+
+  // A direct bird hit takes a pig out in one clean strike, as in the original
+  // game. Falling blocks still use their impact force and pig health.
+  if (data.materialId === "target" && otherMaterialId === "bird") {
+    data.hp = 0;
+    data.destroyed = true;
+    return;
+  }
+
   data.hp -= impulse * PHYSICS.damagePerImpulse * material.damageMultiplier;
   if (data.hp <= 0) {
     data.hp = 0;
@@ -83,10 +95,10 @@ export function createPhysics() {
   const onCollisionStart = ({ pairs }) => {
     for (const pair of pairs) {
       const { bodyA, bodyB } = pair;
-      const { normalSpeed, impulse } = calculateImpactImpulse(bodyA, bodyB, pair.collision);
-      if (normalSpeed < PHYSICS.minDamageSpeed) continue;
-      applyImpactDamage(bodyA, impulse, normalSpeed);
-      applyImpactDamage(bodyB, impulse, normalSpeed);
+      const { closingSpeed, impulse } = calculateImpactImpulse(bodyA, bodyB, pair.collision);
+      if (closingSpeed < PHYSICS.minDamageSpeed) continue;
+      applyImpactDamage(bodyA, impulse, closingSpeed, bodyB.gameData?.materialId);
+      applyImpactDamage(bodyB, impulse, closingSpeed, bodyA.gameData?.materialId);
     }
   };
 
