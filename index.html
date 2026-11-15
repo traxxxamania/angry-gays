@@ -3,19 +3,26 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#17252b">
+    <meta name="theme-color" content="#10162b">
     <title>Sling Lab — физическая песочница</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./src/styles.css">
   </head>
   <body>
-    <canvas id="game-canvas" aria-label="Игровое поле с рогаткой и башнями"></canvas>
+    <canvas id="game-canvas" tabindex="0" aria-label="Игровое поле с рогаткой и башнями"></canvas>
+
     <main class="game-ui" aria-label="Интерфейс игры">
       <header class="topbar">
         <div class="brand">
           <span class="brand-mark" aria-hidden="true">
-            <svg viewBox="0 0 40 40" fill="none">
-              <path d="M11 31 16 9m13 22L24 9M11 31l9-9 9 9" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" />
-              <path d="m16 9 4 4 4-4" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+            <svg viewBox="0 0 44 44" fill="none">
+              <path d="M12 13v18" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+              <path d="M12 17l9-6.5M12 17l9 8.5" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+              <path d="M21 10.5Q24 14 19.5 17.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+              <path d="M21 25.5Q24 21 19.5 17.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+              <circle cx="19.5" cy="17.5" r="3.4" fill="var(--accent, #c8f04d)" />
             </svg>
           </span>
           <span class="brand-copy">
@@ -32,6 +39,22 @@
         </div>
 
         <div class="top-actions">
+          <div class="targets-card">
+            <svg class="targets-icon" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+              <circle cx="10" cy="10" r="6.6" stroke="currentColor" stroke-width="1.5" />
+              <circle cx="10" cy="10" r="2" fill="currentColor" />
+              <path d="M10 1.5v3M10 15.5v3M1.5 10h3m11 0h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+            </svg>
+            <span class="targets-label">ЦЕЛИ</span>
+            <span class="target-pips" id="targets-indicator" aria-hidden="true">
+              <i class="target-pip" data-index="0"></i>
+              <i class="target-pip" data-index="1"></i>
+              <i class="target-pip" data-index="2"></i>
+              <i class="target-pip" data-index="3"></i>
+              <i class="target-pip" data-index="4"></i>
+            </span>
+            <strong id="targets-label" class="targets-count" aria-label="Осталось целей: 5 из 5">5</strong>
+          </div>
           <div class="ammo-card">
             <span class="ammo-label">СНАРЯДЫ</span>
             <span class="ammo-pips" id="shots-indicator" aria-hidden="true">
@@ -76,10 +99,79 @@
         </div>
       </footer>
     </main>
+
+    <section id="start-overlay" class="overlay" role="dialog" aria-modal="true" aria-labelledby="start-title">
+      <div class="overlay-card">
+        <span class="overlay-mark" aria-hidden="true">
+          <svg viewBox="0 0 44 44" fill="none">
+            <path d="M12 13v18" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+            <path d="M12 17l9-6.5M12 17l9 8.5" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+            <path d="M21 10.5Q24 14 19.5 17.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+            <path d="M21 25.5Q24 21 19.5 17.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+            <circle cx="19.5" cy="17.5" r="3.4" fill="var(--accent, #c8f04d)" />
+          </svg>
+        </span>
+        <p class="overlay-kicker">ФИЗИЧЕСКАЯ ПЕСОЧНИЦА</p>
+        <h1 id="start-title" class="overlay-title">Sling Lab</h1>
+        <p class="overlay-sub">Натяни рогатку, разнеси башни из стекла, дерева и камня и сбей все цели.</p>
+
+        <ul class="rules">
+          <li class="rule">
+            <span class="rule-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h13m-5-5 5 5-5 5M5 7v10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            </span>
+            <span><strong>Тяни и отпускай</strong> — потяни снаряд назад, стрелка покажет полёт и первое столкновение.</span>
+          </li>
+          <li class="rule">
+            <span class="rule-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" fill="currentColor" /><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.8" /></svg>
+            </span>
+            <span><strong>5 целей</strong> — сбей все за <strong>3 выстрела</strong>.</span>
+          </li>
+          <li class="rule">
+            <span class="rule-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M6 4h12v6a6 6 0 0 1-12 0V4Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" /><path d="M6 13H4a2 2 0 0 0 2 3m12-3h2a2 2 0 0 1-2 3M12 16v3M9 22h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            </span>
+            <span><strong>Материалы</strong> — стекло бьётся легче, камень держит удар.</span>
+          </li>
+        </ul>
+
+        <button id="start-button" class="primary-button" type="button" autofocus>
+          <span>Играть</span>
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 5l12 7-12 7V5Z" fill="currentColor" /></svg>
+        </button>
+        <p class="overlay-hint">или нажми <kbd>Enter</kbd></p>
+      </div>
+    </section>
+
+    <section id="result-overlay" class="overlay" data-state="won" role="dialog" aria-modal="true" aria-labelledby="result-title" hidden>
+      <div class="overlay-card overlay-card--result">
+        <span id="result-icon" class="result-icon" aria-hidden="true">
+          <svg class="icon-won" viewBox="0 0 48 48" fill="none">
+            <path d="M16 12h16v8a8 8 0 0 1-16 0v-8Z" fill="currentColor" opacity=".92" />
+            <path d="M16 14H10a5 5 0 0 0 5 6M32 14h6a5 5 0 0 1-5 6" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" />
+            <path d="M24 28v7M19 39h10M20 35h8" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          <svg class="icon-lost" viewBox="0 0 48 48" fill="none">
+            <path d="M38 24a14 14 0 1 1-4.5-10.2" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+            <path d="M33 8v7h-7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </span>
+        <h2 id="result-title" class="overlay-title">Все цели сбиты!</h2>
+        <p id="result-subtitle" class="overlay-sub">Отличный выстрел.</p>
+        <button id="result-button" class="primary-button" type="button">
+          <span>Сыграть ещё</span>
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M18.5 8A7.5 7.5 0 0 0 6 6.6L4 8M4 4v4h4m-4 8A7.5 7.5 0 0 0 18 17.2l2-1.4M20 20v-4h-4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" /></svg>
+        </button>
+        <p class="overlay-hint">нажми <kbd>R</kbd>, чтобы начать заново</p>
+      </div>
+    </section>
+
     <div id="boot-error" class="boot-error" role="alert" hidden>
       <strong>Игровая сцена не загрузилась</strong>
       <span>Запусти start.bat. Для загрузки Matter.js нужно подключение к интернету.</span>
     </div>
+
     <script>
       const bootError = document.querySelector("#boot-error");
       const showBootError = () => { bootError.hidden = false; };

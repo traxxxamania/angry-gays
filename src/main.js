@@ -7,8 +7,18 @@ const canvas = document.querySelector("#game-canvas");
 const context = canvas.getContext("2d");
 const shotsLabel = document.querySelector("#shots-label");
 const shotsIndicator = document.querySelector("#shots-indicator");
+const shotPips = [...shotsIndicator.querySelectorAll(".ammo-pip")];
+const targetsLabel = document.querySelector("#targets-label");
+const targetsIndicator = document.querySelector("#targets-indicator");
+const targetPips = [...targetsIndicator.querySelectorAll(".target-pip")];
 const statusLabel = document.querySelector("#status-label");
 const restartButton = document.querySelector("#restart-button");
+const startOverlay = document.querySelector("#start-overlay");
+const startButton = document.querySelector("#start-button");
+const resultOverlay = document.querySelector("#result-overlay");
+const resultTitle = document.querySelector("#result-title");
+const resultSubtitle = document.querySelector("#result-subtitle");
+const resultButton = document.querySelector("#result-button");
 
 const camera = { x: 0, y: 0 };
 let physics;
@@ -23,6 +33,14 @@ let accumulator = 0;
 let previousFrameTime = 0;
 let slingshot;
 const debris = [];
+let timeMs = 0;
+
+const STARS = Array.from({ length: 120 }, () => ({
+  x: Math.random(),
+  y: Math.random() * 0.62,
+  r: 0.5 + Math.random() * 1.5,
+  phase: Math.random() * Math.PI * 2,
+}));
 
 function resizeCanvas() {
   const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
@@ -41,16 +59,45 @@ function homeCameraY(height) {
   return Math.max(0, Math.min(WORLD.height - height, WORLD.groundY + 80 - height));
 }
 
+function countTargetsRemaining() {
+  if (!physics) return totalTargets;
+  return window.Matter.Composite.allBodies(physics.world)
+    .filter((body) => body.gameData?.materialId === "target" && !body.gameData.destroyed).length;
+}
+
 function updateHud(message, state = "ready") {
-  shotsLabel.textContent = shotsLeft;
-  shotsLabel.setAttribute("aria-label", `Осталось бросков: ${shotsLeft} из ${GAME.shotsPerLevel}`);
-  shotsIndicator.querySelectorAll(".ammo-pip").forEach((pip) => {
+  const shotsText = String(shotsLeft);
+  const shotsAriaLabel = `Осталось бросков: ${shotsLeft} из ${GAME.shotsPerLevel}`;
+  if (shotsLabel.textContent !== shotsText) shotsLabel.textContent = shotsText;
+  if (shotsLabel.getAttribute("aria-label") !== shotsAriaLabel) shotsLabel.setAttribute("aria-label", shotsAriaLabel);
+  shotPips.forEach((pip) => {
     pip.classList.toggle("is-spent", Number(pip.dataset.index) >= shotsLeft);
+  });
+  const targetsRemaining = countTargetsRemaining();
+  const targetsText = String(targetsRemaining);
+  const targetsAriaLabel = `Осталось целей: ${targetsRemaining} из ${totalTargets}`;
+  if (targetsLabel.textContent !== targetsText) targetsLabel.textContent = targetsText;
+  if (targetsLabel.getAttribute("aria-label") !== targetsAriaLabel) targetsLabel.setAttribute("aria-label", targetsAriaLabel);
+  targetPips.forEach((pip) => {
+    pip.classList.toggle("is-spent", Number(pip.dataset.index) >= targetsRemaining);
   });
   if (message) {
     statusLabel.querySelector(".status-text").textContent = message;
     statusLabel.dataset.state = state;
   }
+}
+
+function startGame() {
+  startOverlay.hidden = true;
+}
+
+function showResult(won) {
+  resultOverlay.dataset.state = won ? "won" : "lost";
+  resultTitle.textContent = won ? "Все цели сбиты!" : "Броски закончились";
+  resultSubtitle.textContent = won
+    ? "Отличный выстрел. Нажми «Сыграть ещё», чтобы пройти заново."
+    : "Не всё получилось сбить. Нажми «Сыграть ещё» и попробуй снова.";
+  resultOverlay.hidden = false;
 }
 
 function loadBird() {
@@ -83,6 +130,7 @@ function resetGame() {
   debris.length = 0;
   camera.x = 0;
   camera.y = homeCameraY(viewport().height);
+  resultOverlay.hidden = true;
   loadBird();
 }
 
@@ -120,13 +168,14 @@ function updateProjectileLifecycle(delta) {
   activeBird = null;
   fired = false;
   reloadTime = 0;
-  levelComplete = totalTargets > 0 && !window.Matter.Composite.allBodies(physics.world)
-    .some((body) => body.gameData?.materialId === "target" && !body.gameData.destroyed);
+  levelComplete = totalTargets > 0 && countTargetsRemaining() === 0;
   const message = levelComplete
     ? "Все цели сбиты — победа! Нажмите R, чтобы сыграть ещё раз"
     : shotsLeft > 0 ? "Камера возвращается к рогатке" : "Броски закончились — нажмите R";
   const state = levelComplete ? "won" : shotsLeft > 0 ? "returning" : "done";
   updateHud(message, state);
+  if (levelComplete) showResult(true);
+  else if (shotsLeft <= 0) showResult(false);
 }
 
 function maybeReload(delta) {
@@ -142,10 +191,87 @@ function maybeReload(delta) {
 
 function drawBackground(width, height) {
   const sky = context.createLinearGradient(0, 0, 0, height);
-  sky.addColorStop(0, "#182b3a");
-  sky.addColorStop(1, "#263b46");
+  sky.addColorStop(0, "#0d1430");
+  sky.addColorStop(0.45, "#1c2a55");
+  sky.addColorStop(0.78, "#2e4a63");
+  sky.addColorStop(1, "#3c5d63");
   context.fillStyle = sky;
   context.fillRect(0, 0, width, height);
+
+  context.fillStyle = "#e9f4ff";
+  for (let i = 0; i < STARS.length; i += 1) {
+    const star = STARS[i];
+    const twinkle = 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(timeMs * 0.0012 + star.phase));
+    context.globalAlpha = twinkle * 0.9;
+    context.beginPath();
+    context.arc(star.x * width, star.y * height, star.r, 0, Math.PI * 2);
+    context.fill();
+  }
+  context.globalAlpha = 1;
+
+  const moonX = width - Math.max(120, width * 0.14) - camera.x * 0.02;
+  const moonY = Math.max(70, height * 0.16) - camera.y * 0.03;
+  const moonR = Math.min(44, width * 0.05);
+  const moonGlow = context.createRadialGradient(moonX, moonY, moonR * 0.4, moonX, moonY, moonR * 3.2);
+  moonGlow.addColorStop(0, "rgb(244 240 214 / 38%)");
+  moonGlow.addColorStop(1, "rgb(244 240 214 / 0%)");
+  context.fillStyle = moonGlow;
+  context.beginPath();
+  context.arc(moonX, moonY, moonR * 3.2, 0, Math.PI * 2);
+  context.fill();
+  context.fillStyle = "#f0ecd4";
+  context.beginPath();
+  context.arc(moonX, moonY, moonR, 0, Math.PI * 2);
+  context.fill();
+  context.fillStyle = "rgb(180 186 214 / 34%)";
+  context.beginPath();
+  context.arc(moonX - moonR * 0.34, moonY - moonR * 0.24, moonR * 0.16, 0, Math.PI * 2);
+  context.arc(moonX + moonR * 0.24, moonY + moonR * 0.3, moonR * 0.12, 0, Math.PI * 2);
+  context.fill();
+
+  const vignette = context.createRadialGradient(
+    width / 2,
+    height * 0.44,
+    Math.min(width, height) * 0.42,
+    width / 2,
+    height * 0.5,
+    Math.max(width, height) * 0.78,
+  );
+  vignette.addColorStop(0, "rgb(0 0 0 / 0%)");
+  vignette.addColorStop(1, "rgb(0 0 0 / 34%)");
+  context.fillStyle = vignette;
+  context.fillRect(0, 0, width, height);
+}
+
+function drawGround(body) {
+  const { min, max } = body.bounds;
+  const width = max.x - min.x;
+  const height = max.y - min.y;
+  const grassHeight = Math.min(30, height * 0.32);
+
+  const soil = context.createLinearGradient(0, min.y, 0, max.y);
+  soil.addColorStop(0, "#5f9159");
+  soil.addColorStop(0.14, "#44673f");
+  soil.addColorStop(0.5, "#3a4632");
+  soil.addColorStop(1, "#272c21");
+  context.fillStyle = soil;
+  context.fillRect(min.x, min.y, width, height);
+
+  context.fillStyle = "#7cbb6e";
+  context.fillRect(min.x, min.y, width, Math.max(5, grassHeight * 0.3));
+  context.fillStyle = "rgb(124 187 110 / 42%)";
+  context.fillRect(min.x, min.y + grassHeight * 0.32, width, Math.max(3, grassHeight * 0.2));
+
+  context.fillStyle = "rgb(0 0 0 / 14%)";
+  for (let i = 0; i < 40; i += 1) {
+    const a = Math.sin(i * 127.1) * 43758.5453;
+    const r = a - Math.floor(a);
+    const px = min.x + r * width;
+    const py = min.y + grassHeight + (Math.sin(i * 311.7) * 0.5 + 0.5) * (height - grassHeight);
+    context.beginPath();
+    context.arc(px, py, 2 + r * 4, 0, Math.PI * 2);
+    context.fill();
+  }
 }
 
 function drawBody(body) {
@@ -156,6 +282,11 @@ function drawBody(body) {
   const damaged = damageRatio >= 0.35;
   const fill = damaged ? material.damagedColor : material.color;
   context.save();
+  if (data?.materialId === "ground") {
+    drawGround(body);
+    context.restore();
+    return;
+  }
   context.fillStyle = fill;
   context.strokeStyle = "rgb(18 28 35 / 58%)";
   context.lineWidth = 2;
@@ -374,6 +505,7 @@ function render() {
 
 function frame(timestamp) {
   if (!previousFrameTime) previousFrameTime = timestamp;
+  timeMs = timestamp;
   const elapsed = Math.min(timestamp - previousFrameTime, PHYSICS.maxFrameDelta);
   previousFrameTime = timestamp;
   accumulator += elapsed;
@@ -390,6 +522,7 @@ function frame(timestamp) {
   updateProjectileLifecycle(elapsed);
   updateCamera(elapsed);
   maybeReload(elapsed);
+  updateHud();
   render();
   requestAnimationFrame(frame);
 }
@@ -401,9 +534,16 @@ slingshot = createSlingshot(canvas, {
   onLaunch: handleLaunch,
 });
 
+startButton.addEventListener("click", startGame);
 restartButton.addEventListener("click", resetGame);
+resultButton.addEventListener("click", resetGame);
 window.addEventListener("keydown", (event) => {
-  if (event.key.toLowerCase() === "r") resetGame();
+  const key = event.key.toLowerCase();
+  if (!startOverlay.hidden && (key === "enter" || key === " " || key === "r")) {
+    startGame();
+    return;
+  }
+  if (key === "r") resetGame();
 });
 window.addEventListener("resize", resizeCanvas);
 
